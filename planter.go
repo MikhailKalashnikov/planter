@@ -209,13 +209,26 @@ func LoadForeignKeyDef(db Queryer, schema string, tbls []*Table, tbl *Table) ([]
 	return fks, nil
 }
 
+// LoadTableDefForSchemas load Postgres table definition
+func LoadTableDefForSchemas(db Queryer, schemas []string) ([]*Table, error) {
+    var tbls []*Table
+	for _, schema := range schemas {
+		tbls2, err := LoadTableDef(db, schema, tbls)
+		tbls = append(tbls, tbls2...)
+		if err != nil {
+            return tbls, err
+        }
+
+	}
+	return tbls, nil
+}
+
 // LoadTableDef load Postgres table definition
-func LoadTableDef(db Queryer, schema string) ([]*Table, error) {
+func LoadTableDef(db Queryer, schema string, tbls []*Table) ([]*Table, error) {
 	tbDefs, err := db.Query(tableDefSQL, schema)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load table def")
 	}
-	var tbls []*Table
 	for tbDefs.Next() {
 		t := &Table{Schema: schema}
 		err := tbDefs.Scan(
@@ -296,6 +309,24 @@ func FilterTables(match bool, tbls []*Table, tblNames []string) []*Table {
 			var fks []*ForeignKey
 			for _, fk := range tbl.ForeingKeys {
 				if contains(fk.TargetTableName, tblNames) == match {
+					fks = append(fks, fk)
+				}
+			}
+			tbl.ForeingKeys = fks
+			target = append(target, tbl)
+		}
+	}
+	return target
+}
+
+// FilterTableSuffix filter tables by suffix
+func FilterTableSuffix(tbls []*Table, xTblNameSuffix string) []*Table {
+	var target []*Table
+	for _, tbl := range tbls {
+		if strings.HasSuffix(tbl.Name, xTblNameSuffix) == false {
+			var fks []*ForeignKey
+			for _, fk := range tbl.ForeingKeys {
+				if strings.HasSuffix(fk.TargetTableName, xTblNameSuffix) == false {
 					fks = append(fks, fk)
 				}
 			}

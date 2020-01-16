@@ -48,10 +48,11 @@ usage: planter [<flags>] <conn>
 
 Flags:
       --help             Show context-sensitive help (also try --help-long and --help-man).
-  -s, --schema="public"  PostgreSQL schema name
+  -s, --schema="public"  PostgreSQL schema names
   -o, --output=OUTPUT    output file path
   -t, --table=TABLE ...  target tables
   -x, --xtable=TABLE ... exclude target tables
+  -f, --exclude_suffix=TABLESUFFIX ... exclude tables which end with suffix
 
 Args:
   <conn>  PostgreSQL connection string in URL format

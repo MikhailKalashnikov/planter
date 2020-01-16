@@ -12,10 +12,11 @@ var (
 	connStr = kingpin.Arg(
 		"conn", "PostgreSQL connection string in URL format").Required().String()
 	schema = kingpin.Flag(
-		"schema", "PostgreSQL schema name").Default("public").Short('s').String()
+		"schema", "PostgreSQL schemas name").Default("public").Short('s').Strings()
 	outFile     = kingpin.Flag("output", "output file path").Short('o').String()
 	targetTbls  = kingpin.Flag("table", "target tables").Short('t').Strings()
 	xTargetTbls = kingpin.Flag("exclude", "target tables").Short('x').Strings()
+	xTblNameSuffix = kingpin.Flag("exclude_suffix", "exclude suffix").Short('f').String()
 )
 
 func main() {
@@ -26,7 +27,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ts, err := LoadTableDef(db, *schema)
+	ts, err := LoadTableDefForSchemas(db, *schema)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,6 +41,9 @@ func main() {
 	if len(*xTargetTbls) != 0 {
 		tbls = FilterTables(false, tbls, *xTargetTbls)
 	}
+	if xTblNameSuffix != nil {
+        tbls = FilterTableSuffix(tbls, *xTblNameSuffix)
+    }
 	entry, err := TableToUMLEntry(tbls)
 	if err != nil {
 		log.Fatal(err)
