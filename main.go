@@ -41,7 +41,7 @@ func main() {
 	if len(*xTargetTbls) != 0 {
 		tbls = FilterTables(false, tbls, *xTargetTbls)
 	}
-	if xTblNameSuffix != nil {
+	if xTblNameSuffix != nil && len(*xTblNameSuffix) > 0 {
         tbls = FilterTableSuffix(tbls, *xTblNameSuffix)
     }
 	entry, err := TableToUMLEntry(tbls)
