@@ -21,5 +21,5 @@ entity "{{ .Name }}" {
 `
 
 const relationTmpl = `
-{{ if .IsOneToOne }} {{ .SourceTableName }} ||-|| {{ .TargetTableName }}{{else}} {{ .SourceTableName }} }-- {{ .TargetTableName }}{{end}}
+{{ .SourceTableName }} }-- {{ .TargetTableName }}
 `

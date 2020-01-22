@@ -4,7 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
-
+//     "fmt"
 	"github.com/alecthomas/kingpin"
 )
 
@@ -17,6 +17,7 @@ var (
 	targetTbls  = kingpin.Flag("table", "target tables").Short('t').Strings()
 	xTargetTbls = kingpin.Flag("exclude", "target tables").Short('x').Strings()
 	xTblNameSuffix = kingpin.Flag("exclude_suffix", "exclude suffix").Short('f').String()
+	skipFlags   = kingpin.Flag("skip_flags", "exclude suffix").Short('q').String()
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ts, err := LoadTableDefForSchemas(db, *schema)
+	ts, err := LoadTableDefForSchemas(db, *schema, *skipFlags)
 	if err != nil {
 		log.Fatal(err)
 	}
