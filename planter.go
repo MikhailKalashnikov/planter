@@ -34,21 +34,20 @@ type Column struct {
 	Name         string
 	Comment      sql.NullString
 	DataType     string
-	DDLType      string
 	NotNull      bool
 	IsPrimaryKey bool
+	IsUnique bool
+	DefVal sql.NullString
 }
 
 // ForeignKey foreign key
 type ForeignKey struct {
 	ConstraintName        string
 	SourceTableName       string
-	SourceColName         string
-	IsSourceColPrimaryKey bool
 	SourceTable           *Table
 	TargetTableName       string
-	TargetColName         string
-	IsTargetColPrimaryKey bool
+    ConstraintSchemaName  string
+    SourceSchemaName      string
 }
 
 // Table postgres table
@@ -122,7 +121,8 @@ func LoadColumnDef(db Queryer, schema, table string) ([]*Column, error) {
 			&c.DataType,
 			&c.NotNull,
 			&c.IsPrimaryKey,
-			&c.DDLType,
+			&c.IsUnique,
+			&c.DefVal,
 		)
 		c.Comment.String = stripCommentSuffix(c.Comment.String)
 		if err != nil {
@@ -146,12 +146,10 @@ func LoadForeignKeyDef(db Queryer, schema string, tbls []*Table, tbl *Table) ([]
 			SourceTable:     tbl,
 		}
 		err := fkDefs.Scan(
-			&fk.SourceColName,
 			&fk.TargetTableName,
-			&fk.TargetColName,
 			&fk.ConstraintName,
-			&fk.IsTargetColPrimaryKey,
-			&fk.IsSourceColPrimaryKey,
+			&fk.ConstraintSchemaName,
+            		&fk.SourceSchemaName,
 		)
 		if err != nil {
 			return nil, err
@@ -246,6 +244,32 @@ func TableToUMLEntry(tbls []*Table) ([]byte, error) {
 	return src, nil
 }
 
+// TableToUMLTable table entry
+func TableToUMLTable(tbl *Table) ([]byte, error) {
+	tpl, err := template.New("table").Parse(tableTmpl)
+	if err != nil {
+		return nil, err
+	}
+    buf := new(bytes.Buffer)
+    if err := tpl.Execute(buf, tbl); err != nil {
+        return nil, errors.Wrapf(err, "failed to execute template: %s", tbl.Name)
+    }
+	return buf.Bytes(), nil
+}
+
+// TableToRSTTable table entry
+func TableToRSTTable(tbl *Table) ([]byte, error) {
+	tpl, err := template.New("rsttable").Parse(rstTableTmpl)
+	if err != nil {
+		return nil, err
+	}
+    buf := new(bytes.Buffer)
+    if err := tpl.Execute(buf, tbl); err != nil {
+        return nil, errors.Wrapf(err, "failed to execute template: %s", tbl.Name)
+    }
+	return buf.Bytes(), nil
+}
+
 // ForeignKeyToUMLRelation relation
 func ForeignKeyToUMLRelation(tbls []*Table) ([]byte, error) {
 	tpl, err := template.New("relation").Parse(relationTmpl)
@@ -263,6 +287,29 @@ func ForeignKeyToUMLRelation(tbls []*Table) ([]byte, error) {
 		}
 	}
 	return src, nil
+}
+
+// ForeignKeyToUMLRelation2 relation
+func ForeignKeyToUMLRelation2(tbl *Table) ([]byte, []byte, error) {
+    fmt.Fprintln(os.Stdout, "ForeignKeyToUMLRelation2: " + tbl.Name)
+	tpl, err := template.New("relation").Parse(relationTmpl)
+	if err != nil {
+		return nil, nil, err
+	}
+	var schema_src1 []byte
+	var global_src2 []byte
+	for _, fk := range tbl.ForeingKeys {
+        buf := new(bytes.Buffer)
+        if err := tpl.Execute(buf, fk); err != nil {
+            return nil, nil, errors.Wrapf(err, "failed to execute template: %s", fk.ConstraintName)
+        }
+        if fk.ConstraintSchemaName != fk.SourceSchemaName {
+            global_src2 = append(global_src2, buf.Bytes()...)
+        } else {
+            schema_src1 = append(schema_src1, buf.Bytes()...)
+        }
+    }
+	return schema_src1, global_src2, nil
 }
 
 func contains(v string, l []string) bool {
